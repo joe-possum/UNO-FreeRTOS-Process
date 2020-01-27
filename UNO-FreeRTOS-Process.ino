@@ -14,6 +14,9 @@ void setup() {
     ; // wait for serial port to connect. Needed for native USB, on LEONARDO, MICRO, YUN, and other 32u4 based boards.
   }
 
+  Serial.print("FreeRTOS version: ");
+  Serial.println(tskKERNEL_VERSION_NUMBER);
+  
   // Now set up two tasks to run independently.
   xTaskCreate(
     TaskBlink
@@ -34,8 +37,35 @@ void setup() {
   // Now the task scheduler, which takes over control of scheduling individual tasks, is automatically started.
 }
 
-void loop()
+TaskStatus_t tasks[5];
+unsigned long runtime;
+void loop()  // idle task
 {
+  TaskHandle_t handle = xTaskGetCurrentTaskHandle();
+  UBaseType_t numTasks = uxTaskGetNumberOfTasks();
+  Serial.print("Number of tasks: ");
+  Serial.println(numTasks);
+  if(numTasks == uxTaskGetSystemState(tasks,5,&runtime)) {
+    for(int i = 0; i < numTasks; i++) {
+      Serial.print("TaskHandle: ");
+      Serial.print((int)tasks[i].xHandle);
+      Serial.print(", Name: ");
+      Serial.print(tasks[i].pcTaskName);
+      Serial.print(", state: ");
+      Serial.print((int)tasks[i].eCurrentState);
+      Serial.print(", Current priority: ");
+      Serial.print((int)tasks[i].uxCurrentPriority);
+      Serial.print(", Runtime: ");
+      Serial.print(tasks[i].ulRunTimeCounter);
+      Serial.print(", Stack base: ");
+      Serial.print((uint16_t)tasks[i].pxStackBase);
+      Serial.print(", High water mark: ");
+      Serial.println(tasks[i].usStackHighWaterMark);
+    }
+  }
+  Serial.print("I am ");
+  Serial.println((int)handle);
+  delay(5000);
   // Empty. Things are done in Tasks.
 }
 
@@ -77,9 +107,9 @@ void TaskBlink(void *pvParameters)  // This is a task.
   for (;;) // A Task shall never return or exit.
   {
     digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-    vTaskDelay( 1000 / portTICK_PERIOD_MS ); // wait for one second
+    vTaskDelay( 250 / portTICK_PERIOD_MS ); // wait for one second
     digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-    vTaskDelay( 1000 / portTICK_PERIOD_MS ); // wait for one second
+    vTaskDelay( 250 / portTICK_PERIOD_MS ); // wait for one second
   }
 }
 
@@ -102,6 +132,10 @@ void TaskAnalogRead(void *pvParameters)  // This is a task.
     int sensorValue = analogRead(A0);
     // print out the value you read:
     Serial.println(sensorValue);
-    vTaskDelay(1);  // one tick delay (15ms) in between reads for stability
+    vTaskDelay(100);  // one tick delay (15ms) in between reads for stability
   }
+}
+
+void TaskSetRate(void) {
+  static uint8_t p = 0;
 }
